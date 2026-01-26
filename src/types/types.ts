@@ -31,9 +31,20 @@ type LoginResponse = SuccessLoginResponse | FailLoginResponse;
 interface Article {
   ItemCode: string | null;
   ItemName: string | null;
-  InStock: number | null;
+  Price?: number | null;
+  Currency?: string | null;
+  Discount?: number | null;
 }
 
 type Articles = Article[];
 
-export type { SessionData, LoginData, LoginResponse, Article, Articles };
+type SearchFilter = "ItemCode" | "ItemName";
+
+export type {
+  SessionData,
+  LoginData,
+  LoginResponse,
+  Article,
+  Articles,
+  SearchFilter,
+};

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import type { LoginData, SessionData } from "../../types/types";
-import LoginForm from "../ui/LoginForm";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import type { LoginData, SessionData } from "../../types/types";
+import LoginForm from "./ui/LoginForm";
 import { login } from "../../utils/api";
 
 interface LoginPageProps {
@@ -10,6 +10,7 @@ interface LoginPageProps {
 }
 
 function LoginPage({ isLoggedIn, setSessionData }: LoginPageProps) {
+  const navigate = useNavigate();
   const [formFields, setFormFields] = useState<LoginData>({
     CompanyDB: "",
     UserName: "",
@@ -18,10 +19,7 @@ function LoginPage({ isLoggedIn, setSessionData }: LoginPageProps) {
 
   const [loading, setLoading] = useState<boolean>(false);
 
-  const navigate = useNavigate();
-
   useEffect(() => {
-    console.log(isLoggedIn);
     if (isLoggedIn) {
       navigate("/");
     }
@@ -32,17 +30,26 @@ function LoginPage({ isLoggedIn, setSessionData }: LoginPageProps) {
     login({ setLoading, loginData, setSessionData });
   }
 
+  // Check if user is logged in
+  if (isLoggedIn) {
+    navigate("/");
+    return;
+  }
+
   return (
-    <>
-      <LoginForm
-        loading={loading}
-        formFields={formFields}
-        handleInputChange={(name, value) =>
-          setFormFields((prev) => ({ ...prev, [name]: value }))
-        }
-        handleSubmit={() => handleLogin()}
-      />
-    </>
+    <div className="flex h-full w-full items-center justify-center">
+      <div className="flex w-full max-w-md flex-col items-center space-y-8 rounded-lg border p-8 shadow-lg">
+        <h1 className="text-3xl font-bold">Login</h1>
+        <LoginForm
+          loading={loading}
+          formFields={formFields}
+          handleInputChange={(name, value) =>
+            setFormFields((prev) => ({ ...prev, [name]: value }))
+          }
+          handleSubmit={() => handleLogin()}
+        />
+      </div>
+    </div>
   );
 }
 
