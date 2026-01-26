@@ -1,21 +1,30 @@
 import axios from "axios";
 import type {
-  Article,
   Articles,
   LoginData,
   LoginResponse,
+  SearchFilter,
   SessionData,
-} from "../types/types";
+} from "@/types/types";
+import { toast } from "sonner";
 
-interface ArticleResponse {
-  Items: {
-    ItemCode: string | null;
-    ItemName: string | null;
-  };
-  "Items/ItemWarehouseInfoCollection": {
-    InStock: number;
-  };
-}
+// interface GetItemPriceProps {
+//   cardCode: string;
+//   itemCode: string;
+// }
+
+// interface ItemPriceResponse {
+//   Price: number;
+//   Currency?: string;
+//   Discount?: number;
+// }
+
+// interface FetchPricesForArticlesProps {
+//   cardCode: string;
+//   itemCodes: string[];
+// }
+
+// type PricesMap = Map<string, ItemPriceResponse>;
 
 interface LoginProps {
   setLoading: (value: boolean) => void;
@@ -27,9 +36,10 @@ interface FetchArticlesProps {
   loading: boolean;
   setLoading: (value: boolean) => void;
   setArticles: (value: Articles) => void;
+  setHasMorePages?: (value: boolean) => void;
+  skip?: number;
+  top?: number;
 }
-
-const token = localStorage.getItem("SessionId");
 
 async function login({
   setLoading,
@@ -42,7 +52,6 @@ async function login({
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        Authorization: `Bearer ${token}`,
       },
       withCredentials: true,
     });
@@ -63,28 +72,35 @@ async function login({
         SessionTimeout,
         SessionCreatedAt,
       });
+      toast.success("Logged in successfully!");
     } else if (loginResponse.status !== 200 && "error" in data) {
       const { error } = data;
-      console.error(error.message);
-      return;
+      toast.error("Login failed");
+      throw new Error(error.message || "Login failed");
     }
   } catch (error) {
     console.error(error);
+    toast.error("Login failed");
+    throw error;
   } finally {
     setLoading(false);
   }
 }
 
-async function fetchArticles({
-  loading,
+interface LogoutProps {
+  setLoading: (value: boolean) => void;
+  setSessionData: (value: SessionData) => void;
+}
+
+async function logout({
   setLoading,
-  setArticles,
-}: FetchArticlesProps) {
-  if (loading) return;
+  setSessionData,
+}: LogoutProps): Promise<void> {
   setLoading(true);
   try {
-    const res = await axios.get(
-      "$crossjoin(Items,Items/ItemWarehouseInfoCollection)?$expand=Items($select=ItemCode,ItemName),Items/ItemWarehouseInfoCollection($select=InStock)&$filter=Items/ItemCode eq Items/ItemWarehouseInfoCollection/ItemCode and Items/ItemWarehouseInfoCollection/InStock gt 0",
+    const logoutResponse = await axios.post(
+      `Logout`,
+      {},
       {
         headers: {
           "Content-Type": "application/json",
@@ -94,17 +110,56 @@ async function fetchArticles({
       },
     );
 
-    const data: ArticleResponse[] = await res.data.value;
-    const articles: Articles = data.map((item: ArticleResponse) => {
-      const article: Article = {
-        ItemCode: item.Items.ItemCode,
-        ItemName: item.Items.ItemName,
-        InStock: item["Items/ItemWarehouseInfoCollection"].InStock,
-      };
-      return article;
+    if (logoutResponse.status !== 204) {
+      return;
+    }
+    // Clear session state - this will trigger App.tsx to redirect to login
+    setSessionData({
+      SessionId: null,
+      SessionTimeout: null,
+      SessionCreatedAt: null,
     });
+    // Clear local storage
+    localStorage.removeItem("SessionId");
+    localStorage.removeItem("SessionTimeout");
+    localStorage.removeItem("SessionCreatedAt");
+    toast.success("Logged out successfully!");
+  } catch (error) {
+    console.error("Error during logout:", error);
+    toast.error("Logout failed");
+  } finally {
+    setLoading(false);
+  }
+}
 
-    setArticles(articles);
+async function fetchArticles({
+  loading,
+  setLoading,
+  setArticles,
+  setHasMorePages,
+  skip = 0,
+  top = 20,
+}: FetchArticlesProps) {
+  if (loading) return;
+  setLoading(true);
+  try {
+    const res = await axios.get(
+      `Items?$select=ItemCode,ItemName&$skip=${skip}&$top=${top}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        withCredentials: true,
+      },
+    );
+
+    const data = await res.data.value;
+
+    setArticles(data);
+    if (setHasMorePages) {
+      setHasMorePages(data.length === top);
+    }
   } catch (error) {
     console.error(error);
   } finally {
@@ -112,4 +167,184 @@ async function fetchArticles({
   }
 }
 
-export { login, fetchArticles };
+// async function getItemPrice({
+//   cardCode,
+//   itemCode,
+// }: GetItemPriceProps): Promise<ItemPriceResponse | null> {
+//   try {
+//     const response = await axios.post(
+//       `CompanyService_GetItemPrice`,
+//       {
+//         ItemPriceParams: {
+//           CardCode: cardCode,
+//           ItemCode: itemCode,
+//         },
+//       },
+//       {
+//         headers: {
+//           "Content-Type": "application/json",
+//           Accept: "application/json",
+//         },
+//         withCredentials: true,
+//       },
+//     );
+
+//     const data: ItemPriceResponse = response.data;
+//     return data;
+//   } catch (error) {
+//     console.error(`Error fetching price for item ${itemCode}:`, error);
+//     return null;
+//   }
+// }
+
+// async function getPricesForArticles({
+//   cardCode,
+//   itemCodes,
+// }: FetchPricesForArticlesProps): Promise<PricesMap> {
+//   const pricesMap = new Map<string, ItemPriceResponse>();
+
+//   try {
+//     // Fetch prices in parallel for all items
+//     const pricePromises = itemCodes.map((itemCode) =>
+//       getItemPrice({ cardCode, itemCode })
+//         .then((price) => {
+//           if (price !== null) {
+//             pricesMap.set(itemCode, price);
+//           }
+//         })
+//         .catch((error) => {
+//           console.error(`Error fetching price for ${itemCode}:`, error);
+//         }),
+//     );
+
+//     await Promise.all(pricePromises);
+//   } catch (error) {
+//     console.error("Error fetching prices for articles:", error);
+//   }
+
+//   return pricesMap;
+// }
+
+interface PostingPeriod {
+  AbsoluteEntry: number;
+  PeriodCode: string;
+  PeriodName: string;
+  FromDate: string;
+  ToDate: string;
+  PeriodStatus: string; // 'O' for open, 'C' for closed
+}
+
+async function getOpenPostingPeriod(): Promise<string | null> {
+  try {
+    const response = await axios.get(`PostingPeriods`, {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      withCredentials: true,
+    });
+
+    const periods: PostingPeriod[] = response.data.value;
+    const openPeriod = periods.find((p) => p.PeriodStatus === "O");
+    if (openPeriod) {
+      // Return the FromDate as the date to use
+      return openPeriod.FromDate.split("T")[0]; // Assuming it's in ISO format
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching posting periods:", error);
+    return null;
+  }
+}
+
+interface CreatePurchaseRequestProps {
+  DocDate: string;
+  RequriedDate: string;
+  DocumentLines: { ItemCode: string; Quantity: number }[];
+}
+
+async function createPurchaseRequest({
+  DocDate,
+  RequriedDate,
+  DocumentLines,
+}: CreatePurchaseRequestProps): Promise<void> {
+  try {
+    await axios.post(
+      `PurchaseRequests`,
+      {
+        DocDate,
+        RequriedDate,
+        DocumentLines,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        withCredentials: true,
+      },
+    );
+    toast.success("Purchase request created successfully!");
+  } catch (error) {
+    console.error("Error creating purchase request:", error);
+    toast.error("Failed to create purchase request");
+    throw error; // Re-throw to handle in component
+  }
+}
+
+interface SearchArticlesProps {
+  searchText: string;
+  searchFilter: SearchFilter;
+  setLoading: (value: boolean) => void;
+  setArticles: (value: Articles) => void;
+  skip?: number;
+  top?: number;
+}
+
+async function searchArticles({
+  searchText,
+  searchFilter,
+  setLoading,
+  setArticles,
+  skip = 0,
+  top = 20,
+}: SearchArticlesProps) {
+  setLoading(true);
+  try {
+    // Create filter query to search for items by code or name
+    const filter =
+      searchFilter === "ItemCode"
+        ? encodeURIComponent(`ItemCode eq '${searchText}'`)
+        : encodeURIComponent(`ItemName eq '${searchText}'`);
+
+    const res = await axios.get(
+      `Items?$select=ItemCode,ItemName&$filter=${filter}&$skip=${skip}&$top=${top}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        withCredentials: true,
+      },
+    );
+
+    const data = await res.data.value;
+    setArticles(data);
+  } catch (error) {
+    console.error("Error searching articles:", error);
+    toast.error("Failed to search articles");
+  } finally {
+    setLoading(false);
+  }
+}
+
+export {
+  login,
+  logout,
+  fetchArticles,
+  searchArticles,
+  // getItemPrice,
+  // getPricesForArticles,
+  createPurchaseRequest,
+  getOpenPostingPeriod,
+};

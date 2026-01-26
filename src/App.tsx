@@ -1,11 +1,11 @@
-import { Route, Routes, useNavigate } from "react-router-dom";
-import HomePage from "./components/pages/HomePage";
-import Layout from "./components/layouts/Layout";
-import { useEffect, useState, useCallback } from "react";
-import LoginPage from "./components/pages/LoginPage";
-// import { BusyIndicator } from "@ui5/webcomponents-react";
-import type { SessionData } from "./types/types";
-import "./utils/axios";
+import { Route, Routes } from "react-router-dom";
+import HomePage from "@/components/pages/HomePage";
+import Layout from "@/components/layouts/Layout";
+import { useEffect, useState, useCallback, useRef } from "react";
+import LoginPage from "@/components/pages/LoginPage";
+import { Spinner } from "@/components/ui/spinner";
+import type { SessionData } from "@/types/types";
+import "@/utils/axios";
 
 function App() {
   const [sessionData, setSessionData] = useState<SessionData>(
@@ -20,9 +20,8 @@ function App() {
       };
     },
   );
-  // const [loading, setLoading] = useState<boolean>(true);
-
-  const navigate = useNavigate();
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const initializedRef = useRef(false);
 
   const isSessionExpired = useCallback((): boolean => {
     if (!sessionData.SessionCreatedAt || !sessionData.SessionTimeout) {
@@ -45,11 +44,18 @@ function App() {
   }
 
   useEffect(() => {
-    if (isSessionExpired()) {
-      clearLocalStorage();
-      navigate("/login");
-    }
-  }, [isSessionExpired, navigate]);
+    // Only initialize once
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    // Check session in a microtask to avoid synchronous setState in effect
+    Promise.resolve().then(() => {
+      if (isSessionExpired()) {
+        clearLocalStorage();
+      }
+      setIsInitialized(true);
+    });
+  }, [isSessionExpired]);
 
   // Auto-logout timer when session timeout expires
   useEffect(() => {
@@ -69,41 +75,43 @@ function App() {
           SessionCreatedAt: null,
         });
         clearLocalStorage();
-        navigate("/login");
       }, timeRemaining);
 
       return () => clearTimeout(timer);
     }
-  }, [sessionData.SessionCreatedAt, sessionData.SessionTimeout, navigate]);
+  }, [sessionData.SessionCreatedAt, sessionData.SessionTimeout]);
 
-  useEffect(() => {
-    if (isLoggedIn) {
-      navigate("/");
-    } else {
-      navigate("/login");
-    }
-  }, [isLoggedIn, navigate]);
+  if (!isInitialized) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <Spinner className="size-10" />
+      </div>
+    );
+  }
 
-  // if (loading) {
-  //   return <BusyIndicator size="L" />;
-  // }
   return (
-    <>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route
-            path="/login"
-            element={
-              <LoginPage
-                isLoggedIn={isLoggedIn}
-                setSessionData={(data) => setSessionData(data)}
-              />
-            }
-          />
-        </Route>
-      </Routes>
-    </>
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        <Route
+          index
+          element={
+            <HomePage
+              isLoggedIn={isLoggedIn}
+              setSessionData={(data) => setSessionData(data)}
+            />
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <LoginPage
+              isLoggedIn={isLoggedIn}
+              setSessionData={(data) => setSessionData(data)}
+            />
+          }
+        />
+      </Route>
+    </Routes>
   );
 }
 

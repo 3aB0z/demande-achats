@@ -1,11 +1,9 @@
 import { Outlet } from "react-router-dom";
-import Header from "../ui/Header";
 
 function Layout() {
   return (
     <div>
-      <Header />
-      <main className="mx-auto w-full max-w-7xl my-8">
+      <main className="mx-auto h-screen w-screen max-w-7xl">
         <Outlet />
       </main>
     </div>
