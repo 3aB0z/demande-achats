@@ -14,11 +14,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 import { useEffect, useState } from "react";
 import ArticlesTableSkeleton from "./ArticlesTableSkeleton";
-import {
-  createPurchaseRequest,
-  getOpenPostingPeriod,
-  searchArticles,
-} from "@/utils/api";
+import { createPurchaseRequest, searchArticles } from "@/utils/api";
 import { Spinner } from "@/components/ui/spinner";
 import type { Article, SearchFilter } from "@/types/types";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -33,7 +29,6 @@ import {
 
 interface Props {
   data: Article[];
-  allArticles?: Article[];
   loading: boolean;
   onPageChange?: (page: number) => void;
   currentPage?: number;
@@ -42,7 +37,6 @@ interface Props {
 
 export function ArticlesTable({
   data,
-  allArticles = [],
   loading,
   onPageChange,
   currentPage = 0,
@@ -51,10 +45,15 @@ export function ArticlesTable({
   const [search, setSearch] = useState("");
   const [searchFilter, setSearchFilter] = useState<SearchFilter>("ItemCode");
   const [filteredData, setFilteredData] = useState<Article[]>(data);
-  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [selectedRows, setSelectedRows] = useState<Map<string, string>>(
+    new Map(),
+  );
   const [quantities, setQuantities] = useState<Map<string, number>>(new Map());
   const [creatingRequest, setCreatingRequest] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchMode, setSearchMode] = useState(false);
+  const [searchPage, setSearchPage] = useState(0);
+  const [searchHasMorePages, setSearchHasMorePages] = useState(true);
 
   // Compute selectAll state based on current page's data
   const allPageItemCodes = filteredData
@@ -69,44 +68,91 @@ export function ArticlesTable({
     setSearch(value);
 
     if (!value.trim()) {
-      // If search is empty, show current page data
-      setFilteredData(data);
-      setSelectedRows(new Set());
+      // If search is empty, exit search mode and return to normal pagination
+      setSearchMode(false);
+      setSearchPage(0);
+      if (onPageChange) {
+        onPageChange(0);
+      }
       return;
     }
 
-    // Call API to search for articles
+    // Enter search mode and search for articles
+    setSearchMode(true);
+    setSearchPage(0);
     searchArticles({
       searchText: value,
       searchFilter,
       setLoading: setIsSearching,
       setArticles: (results) => {
         setFilteredData(results);
-        // Reset selection when searching
-        setSelectedRows(new Set());
+        setSearchHasMorePages(results.length === 20); // Assuming page size is 20
       },
+      skip: 0,
+      top: 20,
     });
   };
 
   const handleNextPage = () => {
-    if (onPageChange) {
-      onPageChange(currentPage + 1);
+    if (searchMode) {
+      // Handle search pagination
+      const nextPage = searchPage + 1;
+      setSearchPage(nextPage);
+      searchArticles({
+        searchText: search,
+        searchFilter,
+        setLoading: setIsSearching,
+        setArticles: (results) => {
+          setFilteredData(results);
+          setSearchHasMorePages(results.length === 20);
+        },
+        skip: nextPage * 20,
+        top: 20,
+      });
+    } else {
+      // Handle normal pagination
+      if (onPageChange) {
+        onPageChange(currentPage + 1);
+      }
     }
   };
 
   const handlePreviousPage = () => {
-    if (onPageChange && currentPage > 0) {
-      onPageChange(currentPage - 1);
+    if (searchMode) {
+      // Handle search pagination
+      if (searchPage > 0) {
+        const prevPage = searchPage - 1;
+        setSearchPage(prevPage);
+        searchArticles({
+          searchText: search,
+          searchFilter,
+          setLoading: setIsSearching,
+          setArticles: (results) => {
+            setFilteredData(results);
+            setSearchHasMorePages(results.length === 20);
+          },
+          skip: prevPage * 20,
+          top: 20,
+        });
+      }
+    } else {
+      // Handle normal pagination
+      if (onPageChange && currentPage > 0) {
+        onPageChange(currentPage - 1);
+      }
     }
   };
 
   const handleSelectRow = (itemCode: string | null) => {
     if (!itemCode) return;
-    const newSelected = new Set(selectedRows);
+    const newSelected = new Map(selectedRows);
     if (newSelected.has(itemCode)) {
       newSelected.delete(itemCode);
     } else {
-      newSelected.add(itemCode);
+      // Find the item name from current data
+      const item = filteredData.find((a) => a.ItemCode === itemCode);
+      const itemName = item?.ItemName ?? "—";
+      newSelected.set(itemCode, itemName);
     }
     setSelectedRows(newSelected);
 
@@ -127,7 +173,7 @@ export function ArticlesTable({
     if (selectAll) {
       // Deselect all items from this page
       const pageItemCodes = new Set(allPageItemCodes);
-      const newSelected = new Set(selectedRows);
+      const newSelected = new Map(selectedRows);
       pageItemCodes.forEach((code) => newSelected.delete(code));
       setSelectedRows(newSelected);
       // Remove quantities for deselected items
@@ -138,8 +184,15 @@ export function ArticlesTable({
       });
     } else {
       // Select all items from this page
-      const newSelected = new Set(selectedRows);
-      allPageItemCodes.forEach((code) => newSelected.add(code));
+      const newSelected = new Map(selectedRows);
+      allPageItemCodes.forEach((code) => {
+        if (!newSelected.has(code)) {
+          // Find the item name from current data
+          const item = filteredData.find((a) => a.ItemCode === code);
+          const itemName = item?.ItemName ?? "—";
+          newSelected.set(code, itemName);
+        }
+      });
       setSelectedRows(newSelected);
       // Ensure default quantity of 1 for newly selected items
       setQuantities((prev) => {
@@ -154,21 +207,24 @@ export function ArticlesTable({
 
   const handleCreatePurchaseRequest = async () => {
     setCreatingRequest(true);
-    const openDate = await getOpenPostingPeriod();
-    const docDate = openDate || "2025-01-01"; // Fallback if no open period
-    const documentLines = Array.from(selectedRows).map((itemCode) => ({
+    // const docDate = new Date().toISOString().split("T")[0];
+    const docDate = "2025-06-30"; // Hardcoded for testing
+    console.log("Creating purchase request with date:", docDate);
+    const documentLines = Array.from(selectedRows.keys()).map((itemCode) => ({
       ItemCode: itemCode,
       Quantity: quantities.get(itemCode) || 1,
     }));
 
     try {
       await createPurchaseRequest({
+        // DocDate: docDate,
+        // RequriedDate: docDate,
         DocDate: docDate,
         RequriedDate: docDate,
         DocumentLines: documentLines,
       });
       // On success, clear selections
-      setSelectedRows(new Set());
+      setSelectedRows(new Map());
       setQuantities(new Map());
     } catch {
       // Error handled in api
@@ -178,12 +234,11 @@ export function ArticlesTable({
   };
 
   useEffect(() => {
-    Promise.resolve().then(() => {
+    // Only update filtered data when not in search mode
+    if (!searchMode) {
       setFilteredData(data);
-      // Only reset search when page changes, keep selections
-      setSearch("");
-    });
-  }, [data]);
+    }
+  }, [data, searchMode]);
 
   return (
     <div className="flex h-full w-full flex-col items-start gap-4 overflow-y-hidden p-2">
@@ -192,7 +247,23 @@ export function ArticlesTable({
         <ButtonGroup aria-label="Search Filter" className="flex-1">
           <Select
             value={searchFilter}
-            onValueChange={(value: SearchFilter) => setSearchFilter(value)}
+            onValueChange={(value: SearchFilter) => {
+              setSearchFilter(value);
+              // If in search mode, re-search with new filter
+              if (searchMode && search.trim()) {
+                searchArticles({
+                  searchText: search,
+                  searchFilter: value,
+                  setLoading: setIsSearching,
+                  setArticles: (results) => {
+                    setFilteredData(results);
+                    setSearchHasMorePages(results.length === 20);
+                  },
+                  skip: searchPage * 20,
+                  top: 20,
+                });
+              }
+            }}
           >
             <SelectTrigger>
               <SelectValue>{searchFilter}</SelectValue>
@@ -211,32 +282,29 @@ export function ArticlesTable({
             className="flex-1"
           />
         </ButtonGroup>
-        {/* <div className="flex items-center gap-2">
-          <div>Search by:</div>
-          <ButtonGroup aria-label="Search Filter">
-            <Button variant="outline">ItemCode</Button>
-            <Button variant="outline">ItemName</Button>
-          </ButtonGroup>
-        </div> */}
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="icon"
-            className={`pointer-events-auto hover:${currentPage === 0 || loading ? "cursor-not-allowed" : "cursor-auto"}`}
+            className={`pointer-events-auto hover:${(searchMode ? searchPage === 0 : currentPage === 0) || loading ? "cursor-not-allowed" : "cursor-auto"}`}
             onClick={handlePreviousPage}
-            disabled={currentPage === 0 || loading}
+            disabled={
+              (searchMode ? searchPage === 0 : currentPage === 0) || loading
+            }
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium text-nowrap hover:cursor-default">
-            Page {currentPage + 1}
+            Page {searchMode ? searchPage + 1 : currentPage + 1}
           </span>
           <Button
             variant="outline"
             size="icon"
-            className={`pointer-events-auto hover:${!hasMorePages || loading ? "cursor-not-allowed" : "cursor-auto"}`}
+            className={`pointer-events-auto hover:${(searchMode ? !searchHasMorePages : !hasMorePages) || loading ? "cursor-not-allowed" : "cursor-auto"}`}
             onClick={handleNextPage}
-            disabled={!hasMorePages || loading}
+            disabled={
+              (searchMode ? !searchHasMorePages : !hasMorePages) || loading
+            }
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -244,7 +312,7 @@ export function ArticlesTable({
       </div>
 
       {/* Table and Selected Rows */}
-      <div className="flex h-full w-full gap-4 overflow-y-auto pr-2">
+      <div className="flex h-full w-full gap-4">
         {/* Table */}
         <div className="h-full min-w-0 flex-1">
           {loading || isSearching ? (
@@ -298,7 +366,7 @@ export function ArticlesTable({
         </div>
 
         {/* Selected Rows Panel - Right Side Sidebar */}
-        <div className="sticky top-0 flex h-full w-80 shrink-0 flex-col gap-3 rounded-lg border bg-white px-4 pt-3 pb-4">
+        <div className="flex h-full w-80 shrink-0 flex-col gap-3 rounded-lg border bg-white px-4 pt-3 pb-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-slate-800">
               Selected
@@ -311,7 +379,7 @@ export function ArticlesTable({
               size="sm"
               className="h-7 text-xs"
               onClick={() => {
-                setSelectedRows(new Set());
+                setSelectedRows(new Map());
                 setQuantities(new Map());
               }}
               disabled={selectedRows.size === 0}
@@ -320,7 +388,7 @@ export function ArticlesTable({
             </Button>
           </div>
           <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
-            {Array.from(selectedRows).map((itemCode) => {
+            {Array.from(selectedRows.entries()).map(([itemCode, itemName]) => {
               return (
                 <div
                   key={itemCode}
@@ -332,8 +400,7 @@ export function ArticlesTable({
                         {itemCode}
                       </div>
                       <div className="truncate text-xs text-gray-600">
-                        {allArticles.find((a) => a.ItemCode === itemCode)
-                          ?.ItemName ?? "—"}
+                        {itemName}
                       </div>
                     </div>
                     <Button
@@ -341,7 +408,7 @@ export function ArticlesTable({
                       size="icon"
                       className="h-6 w-6 shrink-0"
                       onClick={() => {
-                        const newSelected = new Set(selectedRows);
+                        const newSelected = new Map(selectedRows);
                         newSelected.delete(itemCode);
                         setSelectedRows(newSelected);
                         const newQuantities = new Map(quantities);

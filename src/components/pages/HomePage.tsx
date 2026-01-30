@@ -2,9 +2,9 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Articles, SessionData } from "@/types/types";
 import { fetchArticles, logout } from "@/utils/api";
-import { ArticlesTable } from "@/components/pages/ui/article/ArticlesTable";
+import { ArticlesTable } from "@/components/pages/ui/articles/ArticlesTable";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, FileText } from "lucide-react";
 import { Spinner } from "../ui/spinner";
 
 interface HomePageProps {
@@ -15,7 +15,6 @@ interface HomePageProps {
 function HomePage({ isLoggedIn, setSessionData }: HomePageProps) {
   const navigate = useNavigate();
   const [articles, setArticles] = useState<Articles>([]);
-  const [allArticles, setAllArticles] = useState<Articles>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [pageIndex, setPageIndex] = useState<number>(0);
   const [hasMorePages, setHasMorePages] = useState<boolean>(true);
@@ -39,7 +38,6 @@ function HomePage({ isLoggedIn, setSessionData }: HomePageProps) {
         setArticles(cachedArticles);
         // Update hasMorePages based on cached data
         setHasMorePages(cachedArticles.length === pageSize);
-        setAllArticles(Array.from(cachedPagesRef.current.values()).flat());
         return;
       }
 
@@ -53,7 +51,6 @@ function HomePage({ isLoggedIn, setSessionData }: HomePageProps) {
           cachedPagesRef.current.set(page, newArticles);
           // If returned articles are less than page size, we've reached the end
           setHasMorePages(newArticles.length === pageSize);
-          setAllArticles(Array.from(cachedPagesRef.current.values()).flat());
         },
         skip,
         top: pageSize,
@@ -81,7 +78,6 @@ function HomePage({ isLoggedIn, setSessionData }: HomePageProps) {
           setArticles(newArticles);
           cachedPagesRef.current.set(0, newArticles);
           setHasMorePages(newArticles.length === pageSize);
-          setAllArticles(Array.from(cachedPagesRef.current.values()).flat());
         },
         skip: 0,
         top: pageSize,
@@ -101,28 +97,38 @@ function HomePage({ isLoggedIn, setSessionData }: HomePageProps) {
     <div className="flex h-full w-full flex-col">
       <div className="flex items-center justify-between bg-white px-2 pt-8 pb-4">
         <h1 className="text-2xl font-bold">Demande d'achats</h1>
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={handleLogout}
-          className="flex items-center gap-2"
-        >
-          {logoutLoading ? (
-            <>
-              Logging out
-              <Spinner />
-            </>
-          ) : (
-            <>
-              <LogOut className="h-4 w-4" />
-              Logout
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/purchase-requests")}
+            className="flex items-center gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            My Purchase Requests
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleLogout}
+            className="flex items-center gap-2"
+          >
+            {logoutLoading ? (
+              <>
+                Logging out
+                <Spinner />
+              </>
+            ) : (
+              <>
+                <LogOut className="h-4 w-4" />
+                Logout
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       <ArticlesTable
         data={articles}
-        allArticles={allArticles}
         loading={loading}
         onPageChange={handleFetchArticles}
         currentPage={pageIndex}

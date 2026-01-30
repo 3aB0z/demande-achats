@@ -40,6 +40,24 @@ type Articles = Article[];
 
 type SearchFilter = "ItemCode" | "ItemName";
 
+interface PurchaseRequest {
+  DocEntry: number;
+  DocNum: number;
+  DocDate: string;
+  RequriedDate: string;
+  DocumentStatus: "bost_Open" | "bost_Closed" | "bost_Cancelled" | "bost_Draft";
+  DocTotal?: number;
+  DocumentLines?: {
+    ItemCode: string;
+    ItemName: string;
+    Quantity: number;
+    Price: number;
+    LineTotal: number;
+  }[];
+}
+
+type PurchaseRequests = PurchaseRequest[];
+
 export type {
   SessionData,
   LoginData,
@@ -47,4 +65,6 @@ export type {
   Article,
   Articles,
   SearchFilter,
+  PurchaseRequest,
+  PurchaseRequests,
 };

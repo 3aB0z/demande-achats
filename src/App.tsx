@@ -3,6 +3,7 @@ import HomePage from "@/components/pages/HomePage";
 import Layout from "@/components/layouts/Layout";
 import { useEffect, useState, useCallback, useRef } from "react";
 import LoginPage from "@/components/pages/LoginPage";
+import PurchaseRequestsPage from "@/components/pages/PurchaseRequestsPage";
 import { Spinner } from "@/components/ui/spinner";
 import type { SessionData } from "@/types/types";
 import "@/utils/axios";
@@ -109,6 +110,10 @@ function App() {
               setSessionData={(data) => setSessionData(data)}
             />
           }
+        />
+        <Route
+          path="/purchase-requests"
+          element={<PurchaseRequestsPage isLoggedIn={isLoggedIn} />}
         />
       </Route>
     </Routes>
