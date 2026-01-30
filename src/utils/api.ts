@@ -5,6 +5,7 @@ import type {
   LoginResponse,
   SearchFilter,
   SessionData,
+  PurchaseRequests,
 } from "@/types/types";
 import { toast } from "sonner";
 
@@ -167,96 +168,6 @@ async function fetchArticles({
   }
 }
 
-// async function getItemPrice({
-//   cardCode,
-//   itemCode,
-// }: GetItemPriceProps): Promise<ItemPriceResponse | null> {
-//   try {
-//     const response = await axios.post(
-//       `CompanyService_GetItemPrice`,
-//       {
-//         ItemPriceParams: {
-//           CardCode: cardCode,
-//           ItemCode: itemCode,
-//         },
-//       },
-//       {
-//         headers: {
-//           "Content-Type": "application/json",
-//           Accept: "application/json",
-//         },
-//         withCredentials: true,
-//       },
-//     );
-
-//     const data: ItemPriceResponse = response.data;
-//     return data;
-//   } catch (error) {
-//     console.error(`Error fetching price for item ${itemCode}:`, error);
-//     return null;
-//   }
-// }
-
-// async function getPricesForArticles({
-//   cardCode,
-//   itemCodes,
-// }: FetchPricesForArticlesProps): Promise<PricesMap> {
-//   const pricesMap = new Map<string, ItemPriceResponse>();
-
-//   try {
-//     // Fetch prices in parallel for all items
-//     const pricePromises = itemCodes.map((itemCode) =>
-//       getItemPrice({ cardCode, itemCode })
-//         .then((price) => {
-//           if (price !== null) {
-//             pricesMap.set(itemCode, price);
-//           }
-//         })
-//         .catch((error) => {
-//           console.error(`Error fetching price for ${itemCode}:`, error);
-//         }),
-//     );
-
-//     await Promise.all(pricePromises);
-//   } catch (error) {
-//     console.error("Error fetching prices for articles:", error);
-//   }
-
-//   return pricesMap;
-// }
-
-interface PostingPeriod {
-  AbsoluteEntry: number;
-  PeriodCode: string;
-  PeriodName: string;
-  FromDate: string;
-  ToDate: string;
-  PeriodStatus: string; // 'O' for open, 'C' for closed
-}
-
-async function getOpenPostingPeriod(): Promise<string | null> {
-  try {
-    const response = await axios.get(`PostingPeriods`, {
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      withCredentials: true,
-    });
-
-    const periods: PostingPeriod[] = response.data.value;
-    const openPeriod = periods.find((p) => p.PeriodStatus === "O");
-    if (openPeriod) {
-      // Return the FromDate as the date to use
-      return openPeriod.FromDate.split("T")[0]; // Assuming it's in ISO format
-    }
-    return null;
-  } catch (error) {
-    console.error("Error fetching posting periods:", error);
-    return null;
-  }
-}
-
 interface CreatePurchaseRequestProps {
   DocDate: string;
   RequriedDate: string;
@@ -269,7 +180,7 @@ async function createPurchaseRequest({
   DocumentLines,
 }: CreatePurchaseRequestProps): Promise<void> {
   try {
-    await axios.post(
+    const res = await axios.post(
       `PurchaseRequests`,
       {
         DocDate,
@@ -284,11 +195,73 @@ async function createPurchaseRequest({
         withCredentials: true,
       },
     );
+
+    // Extract DocNum from response
+    const docNum = res.data.DocNum;
+    if (docNum) {
+      // Store DocNum in localStorage
+      const storedDocNums = JSON.parse(
+        localStorage.getItem("MyPurchaseRequests") || "[]",
+      );
+      if (!storedDocNums.includes(docNum)) {
+        storedDocNums.push(docNum);
+        localStorage.setItem(
+          "MyPurchaseRequests",
+          JSON.stringify(storedDocNums),
+        );
+      }
+    }
+
     toast.success("Purchase request created successfully!");
   } catch (error) {
     console.error("Error creating purchase request:", error);
     toast.error("Failed to create purchase request");
     throw error; // Re-throw to handle in component
+  }
+}
+
+interface FetchPurchaseRequestsProps {
+  setLoading: (value: boolean) => void;
+  setPurchaseRequests: (value: PurchaseRequests) => void;
+}
+
+async function fetchPurchaseRequests({
+  setLoading,
+  setPurchaseRequests,
+}: FetchPurchaseRequestsProps): Promise<void> {
+  setLoading(true);
+  try {
+    // Get stored DocNums from localStorage
+    const storedDocNums = JSON.parse(
+      localStorage.getItem("MyPurchaseRequests") || "[]",
+    ) as number[];
+
+    if (storedDocNums.length === 0) {
+      setPurchaseRequests([]);
+      return;
+    }
+
+    // Fetch purchase requests by DocNum
+    const docNumFilter = storedDocNums
+      .map((num) => `DocNum eq ${num}`)
+      .join(" or ");
+    const res = await axios.get(
+      `PurchaseRequests?$filter=${encodeURIComponent(docNumFilter)}&$orderby=DocEntry desc`,
+      {
+        headers: {
+          Accept: "application/json",
+        },
+        withCredentials: true,
+      },
+    );
+
+    const data = res.data.value || [];
+    setPurchaseRequests(data);
+  } catch (error) {
+    console.error("Error fetching purchase requests:", error);
+    toast.error("Failed to fetch purchase requests");
+  } finally {
+    setLoading(false);
   }
 }
 
@@ -314,8 +287,8 @@ async function searchArticles({
     // Create filter query to search for items by code or name
     const filter =
       searchFilter === "ItemCode"
-        ? encodeURIComponent(`ItemCode eq '${searchText}'`)
-        : encodeURIComponent(`ItemName eq '${searchText}'`);
+        ? encodeURIComponent(`contains(ItemCode, '${searchText}')`)
+        : encodeURIComponent(`contains(ItemName, '${searchText}')`);
 
     const res = await axios.get(
       `Items?$select=ItemCode,ItemName&$filter=${filter}&$skip=${skip}&$top=${top}`,
@@ -343,8 +316,6 @@ export {
   logout,
   fetchArticles,
   searchArticles,
-  // getItemPrice,
-  // getPricesForArticles,
   createPurchaseRequest,
-  getOpenPostingPeriod,
+  fetchPurchaseRequests,
 };
