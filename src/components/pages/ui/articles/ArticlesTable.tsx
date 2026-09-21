@@ -241,7 +241,7 @@ export function ArticlesTable({
   }, [data, searchMode]);
 
   return (
-    <div className="flex h-full w-full flex-col items-start gap-4 overflow-y-hidden p-2">
+    <>
       {/* Navigation and Search */}
       <div className="flex w-full items-center justify-between gap-4">
         <ButtonGroup aria-label="Search Filter" className="flex-1">
@@ -312,13 +312,13 @@ export function ArticlesTable({
       </div>
 
       {/* Table and Selected Rows */}
-      <div className="flex h-full w-full gap-4">
+      <div className="flex h-150 w-full gap-4">
         {/* Table */}
         <div className="h-full min-w-0 flex-1">
           {loading || isSearching ? (
             <ArticlesTableSkeleton />
           ) : (
-            <div className="rounded-sm border">
+            <div className="rounded-sm border h-full overflow-auto">
               <Table className="w-full">
                 <TableHeader>
                   <TableRow>
@@ -366,7 +366,7 @@ export function ArticlesTable({
         </div>
 
         {/* Selected Rows Panel - Right Side Sidebar */}
-        <div className="flex h-full w-80 shrink-0 flex-col gap-3 rounded-lg border bg-white px-4 pt-3 pb-4">
+        <div className="flex max-h-full w-80 shrink-0 flex-col gap-3 rounded-lg border bg-white px-4 pt-3 pb-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-slate-800">
               Selected
@@ -464,6 +464,6 @@ export function ArticlesTable({
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

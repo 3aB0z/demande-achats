@@ -11,4 +11,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      "/b1s": {
+        target: "https://backend.example.invalid:50000",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 });
