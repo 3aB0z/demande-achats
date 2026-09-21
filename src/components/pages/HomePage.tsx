@@ -94,8 +94,8 @@ function HomePage({ isLoggedIn, setSessionData }: HomePageProps) {
   }
 
   return (
-    <div className="flex h-full w-full flex-col">
-      <div className="flex items-center justify-between bg-white px-2 pt-8 pb-4">
+    <div className="flex h-full max-h-full w-full flex-col gap-4 p-4">
+      <div className="flex items-center justify-between bg-white">
         <h1 className="text-2xl font-bold">Demande d'achats</h1>
         <div className="flex items-center gap-2">
           <Button

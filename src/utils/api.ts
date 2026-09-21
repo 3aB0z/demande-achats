@@ -49,7 +49,7 @@ async function login({
 }: LoginProps): Promise<void> {
   setLoading(true);
   try {
-    const loginResponse = await axios.post(`Login`, loginData, {
+    const loginResponse = await axios.post(`/Login`, loginData, {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
