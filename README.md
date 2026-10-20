@@ -43,3 +43,9 @@ It is designed for organizations that want to better organize internal purchasin
 ### API
 
 The application communicates with an external API for sign-in, item browsing, and creating or retrieving purchase requests. The routes and filters used are compatible with the SAP Business One Service Layer model. The API server is not included in this repository.
+
+### Local configuration
+
+Copy `.env.example` to `.env` and set `API_PROXY_TARGET` to the HTTPS URL of your SAP Business One Service Layer server. Keep `.env` private; it is excluded from Git. The server's TLS certificate must be trusted by your development machine.
+
+`VITE_API_BASE_URL` sets the API base path used by the frontend. The example points it at the Vite `/b1s` proxy.
