@@ -1,38 +1,45 @@
-# Demande d'achats
+# Purchase Requests
 
-Application web de gestion des demandes d'achat interne pour permettre à un utilisateur de consulter les articles disponibles, sélectionner ceux nécessaires, puis créer une demande d'achat de manière rapide et structurée.
+A web application for managing internal purchase requests. It lets users browse available items, select the ones they need, and create purchase requests through a simple, structured workflow.
 
-## Résumé du projet
+## Project overview
 
-Cette application centralise le processus de demande d'achat dans une interface simple et moderne. Elle permet à un utilisateur de se connecter, de rechercher des articles dans le catalogue, de définir les quantités, puis de soumettre une demande d'achat sans passer par des échanges manuels ou des saisies dispersées.
+This application brings the purchase-request process together in one interface. Users can sign in, search the item catalog, set quantities, and submit purchase requests.
 
-Elle est conçue pour les entreprises qui souhaitent mieux organiser leurs achats internes, réduire les erreurs de saisie et garder une trace claire des demandes émises.
+It is designed for organizations that want to better organize internal purchasing, reduce data-entry errors, and improve request tracking.
 
-## Fonctionnalités principales
+## Key features
 
-- Connexion sécurisée avec gestion de session
-- Consultation des articles disponibles avec pagination
-- Recherche par code article ou nom article
-- Sélection multiple d'articles pour une demande
-- Définition des quantités avant validation
-- Création d'une demande d'achat à partir des articles sélectionnés
-- Suivi des demandes créées par l'utilisateur
-- Déconnexion avec expiration automatique de session
+- Sign-in and session management with automatic expiration
+- Paginated browsing of available items
+- Search by item code or item name
+- Select multiple items for a request
+- Set item quantities before submitting
+- Create a purchase request from the selected items
+- View purchase requests created by the user
+- Sign out
 
-## Problèmes que ce projet permet de résoudre
+## Problems this project helps solve
 
-- Réduction des demandes d'achat gérées manuellement par email, papier ou messages internes
-- Limitation des erreurs de saisie lors de la sélection des articles et des quantités
-- Amélioration de la traçabilité des demandes émises
-- Gain de temps grâce à une recherche rapide et à une interface de sélection unique
-- Meilleure visibilité sur les articles disponibles et les achats en cours
-- Contrôle de l’accès grâce à une authentification et à la gestion des sessions
+- Reduces purchase requests handled manually by email, on paper, or through internal messaging
+- Helps prevent errors when selecting items and entering quantities
+- Improves tracking of submitted requests
+- Saves time with item search and selection in one interface
+- Provides better visibility into available items and ongoing requests
 
-## Stack technique
+## Technology stack
 
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- Axios
-- React Router
+- **React 19** — builds the user interface from reusable components.
+- **TypeScript** — adds static types to JavaScript and helps catch some errors during development.
+- **Vite** — provides the development server and builds the application.
+- **Tailwind CSS 4** — styles the interface using utility classes.
+- **React Router 7** — handles client-side navigation between pages.
+- **Axios** — sends HTTP requests to the API, whose base URL is configured with `VITE_API_BASE_URL`.
+- **TanStack Table** — provides table functionality for displaying data.
+- **Radix UI** — provides accessible interface components, including dialogs, checkboxes, and select menus.
+- **Sonner and Lucide React** — provide toast notifications and icons.
+- **ESLint and Prettier** — support code linting and formatting.
+
+### API
+
+The application communicates with an external API for sign-in, item browsing, and creating or retrieving purchase requests. The routes and filters used are compatible with the SAP Business One Service Layer model. The API server is not included in this repository.
