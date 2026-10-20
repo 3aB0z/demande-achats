@@ -1,73 +1,38 @@
-# React + TypeScript + Vite
+# Demande d'achats
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Application web de gestion des demandes d'achat interne pour permettre à un utilisateur de consulter les articles disponibles, sélectionner ceux nécessaires, puis créer une demande d'achat de manière rapide et structurée.
 
-Currently, two official plugins are available:
+## Résumé du projet
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Cette application centralise le processus de demande d'achat dans une interface simple et moderne. Elle permet à un utilisateur de se connecter, de rechercher des articles dans le catalogue, de définir les quantités, puis de soumettre une demande d'achat sans passer par des échanges manuels ou des saisies dispersées.
 
-## React Compiler
+Elle est conçue pour les entreprises qui souhaitent mieux organiser leurs achats internes, réduire les erreurs de saisie et garder une trace claire des demandes émises.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Fonctionnalités principales
 
-## Expanding the ESLint configuration
+- Connexion sécurisée avec gestion de session
+- Consultation des articles disponibles avec pagination
+- Recherche par code article ou nom article
+- Sélection multiple d'articles pour une demande
+- Définition des quantités avant validation
+- Création d'une demande d'achat à partir des articles sélectionnés
+- Suivi des demandes créées par l'utilisateur
+- Déconnexion avec expiration automatique de session
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Problèmes que ce projet permet de résoudre
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Réduction des demandes d'achat gérées manuellement par email, papier ou messages internes
+- Limitation des erreurs de saisie lors de la sélection des articles et des quantités
+- Amélioration de la traçabilité des demandes émises
+- Gain de temps grâce à une recherche rapide et à une interface de sélection unique
+- Meilleure visibilité sur les articles disponibles et les achats en cours
+- Contrôle de l’accès grâce à une authentification et à la gestion des sessions
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Stack technique
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- Axios
+- React Router
