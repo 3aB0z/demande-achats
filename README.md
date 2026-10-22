@@ -46,6 +46,6 @@ The application communicates with an external API for sign-in, item browsing, an
 
 ### Local configuration
 
-Copy `.env.example` to `.env` and set `API_PROXY_TARGET` to the HTTPS URL of your SAP Business One Service Layer server. Keep `.env` private; it is excluded from Git. The server's TLS certificate must be trusted by your development machine.
+Copy `.env.example` to `.env` and set `API_PROXY_TARGET` to the HTTPS URL of your SAP Business One Service Layer server. Keep `.env` private; it is excluded from Git. `API_PROXY_SECURE=false` allows the Vite development proxy to connect when the backend certificate is untrusted. Set it to `true` when the certificate is trusted. This setting only affects Vite's development proxy; production deployments must validate the backend's TLS certificate.
 
 `VITE_API_BASE_URL` sets the API base path used by the frontend. The example points it at the Vite `/b1s` proxy.

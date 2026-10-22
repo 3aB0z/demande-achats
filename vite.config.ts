@@ -7,6 +7,7 @@ import path from "path";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const apiProxyTarget = env.API_PROXY_TARGET;
+  const apiProxySecure = env.API_PROXY_SECURE === "true";
 
   if (!apiProxyTarget) {
     throw new Error("Missing API_PROXY_TARGET. Set it in your local .env file.");
@@ -24,7 +25,7 @@ export default defineConfig(({ mode }) => {
         "/b1s": {
           target: apiProxyTarget,
           changeOrigin: true,
-          secure: true,
+          secure: apiProxySecure,
         },
       },
     },
